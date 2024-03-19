@@ -1,0 +1,79 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+
+// Structure to represent a day in the calendar
+struct Day {
+    char *dayName;
+    int date;
+    char *activity;
+};
+
+// Function to initialize a day in the calendar
+void initializeDay(struct Day *day, const char *dayName, int date, const char *activity) {
+    day->dayName = strdup(dayName);
+    day->date = date;
+    day->activity = strdup(activity);
+
+    // Check if memory allocation is successful
+    if (day->dayName == NULL || day->activity == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+// Function to display a day in the calendar
+void displayDay(const struct Day *day) {
+    printf("Day %d (%s): %s\n", day->date, day->dayName, day->activity);
+}
+
+// Thread function to initialize and display a day
+void *initializeAndDisplay(void *arg) {
+    struct Day *day = (struct Day *)arg;
+    initializeDay(day, "SampleDay", 1, "SampleActivity");
+    displayDay(day);
+    return NULL;
+}
+
+int main() {
+    // Number of days in a week
+    int numDays = 7;
+
+    // Dynamically allocate an array of structures
+    struct Day *calendar = (struct Day *)malloc(numDays * sizeof(struct Day));
+
+    // Check if memory allocation is successful
+    if (calendar == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return EXIT_FAILURE;
+    }
+
+    // Using threads to initialize and display each day
+    pthread_t threads[numDays];
+
+    for (int i = 0; i < numDays; ++i) {
+        if (pthread_create(&threads[i], NULL, initializeAndDisplay, &calendar[i]) != 0) {
+            fprintf(stderr, "Thread creation failed\n");
+            return EXIT_FAILURE;
+        }
+    }
+
+    // Wait for all threads to finish
+    for (int i = 0; i < numDays; ++i) {
+        if (pthread_join(threads[i], NULL) != 0) {
+            fprintf(stderr, "Thread join failed\n");
+            return EXIT_FAILURE;
+        }
+    }
+
+    // Free dynamically allocated memory
+    for (int i = 0; i < numDays; ++i) {
+        free(calendar[i].dayName);
+        free(calendar[i].activity);
+    }
+
+    free(calendar);
+
+    return EXIT_SUCCESS;
+}
